@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="io.odin.ninerealmdefenders" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:gap="http://phonegap.com/ns/1.0">
+    <name>Nine Realms Defenders</name>
+    <description>
+        A Norse mythology strategy game where you defend the Nine Realms as Odin
+    </description>
+    <author email="developer@example.com" href="https://yourwebsite.com">
+        Your Name
+    </author>
+    <content src="index.html" />
+    
+    <preference name="orientation" value="portrait" />
+    <preference name="fullscreen" value="true" />
+    <preference name="android-minSdkVersion" value="22" />
+    
+    <platform name="android">
+        <icon src="icon.png" />
+        <splash src="splash.png" />
+    </platform>
+    
+    <plugin name="cordova-plugin-device" spec="^2.0.3" />
+    <plugin name="cordova-plugin-statusbar" spec="^2.4.3" />
+    <plugin name="cordova-plugin-screen-orientation" spec="^3.0.2" />
+    
+    <access origin="*" />
+</widget>
+

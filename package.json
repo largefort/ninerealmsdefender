@@ -1,0 +1,26 @@
+{
+    "name": "nine-realms-defenders",
+    "version": "1.0.0",
+    "description": "Norse mythology strategy game",
+    "scripts": {
+        "cordova-build": "cordova build android",
+        "cordova-run": "cordova run android"
+    },
+    "dependencies": {
+        "cordova-android": "^9.0.0",
+        "cordova-plugin-device": "^2.0.3",
+        "cordova-plugin-statusbar": "^2.4.3",
+        "cordova-plugin-screen-orientation": "^3.0.2"
+    },
+    "cordova": {
+        "platforms": [
+            "android"
+        ],
+        "plugins": {
+            "cordova-plugin-device": {},
+            "cordova-plugin-statusbar": {},
+            "cordova-plugin-screen-orientation": {}
+        }
+    }
+}
+
