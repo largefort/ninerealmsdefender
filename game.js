@@ -102,6 +102,9 @@ const gameState = {
     resources: 100,
     resourcesPerSecond: 0,
     lastResourceUpdate: Date.now(),
+    newGamePlus: false,
+    newGamePlusLevel: 0,
+    hasDefeatedSurtr: false,
     einherjar: {
         warriors: 0,
         archers: 0,
@@ -401,10 +404,12 @@ function loadSaveSlots() {
         
         if (saveData) {
             const data = JSON.parse(saveData);
+            const ngPlusDisplay = data.newGamePlus ? ` (NG+${data.newGamePlusLevel || 1})` : '';
             slotDetails.innerHTML = `
-                <p>Day: ${data.day}</p>
+                <p>Day: ${data.day}${ngPlusDisplay}</p>
                 <p>Einherjar: ${data.einherjar.total}</p>
                 <p>Realms Defended: ${data.realms.filter(realm => realm.defended).length}/9</p>
+                ${data.hasDefeatedSurtr ? '<p class="surtr-defeated">✓ Surtr Defeated</p>' : ''}
             `;
         } else {
             slotDetails.innerHTML = `<p class="empty-slot">Empty Slot</p>`;
@@ -448,6 +453,9 @@ function saveGame() {
         resourcesPerSecond: gameState.resourcesPerSecond,
         einherjar: gameState.einherjar,
         realms: gameState.realms,
+        newGamePlus: gameState.newGamePlus,
+        newGamePlusLevel: gameState.newGamePlusLevel,
+        hasDefeatedSurtr: gameState.hasDefeatedSurtr,
         savedAt: new Date().toISOString()
     });
     
@@ -504,6 +512,9 @@ function startGame() {
         gameState.resourcesPerSecond = data.resourcesPerSecond;
         gameState.einherjar = data.einherjar;
         gameState.realms = data.realms;
+        gameState.newGamePlus = data.newGamePlus || false;
+        gameState.newGamePlusLevel = data.newGamePlusLevel || 0;
+        gameState.hasDefeatedSurtr = data.hasDefeatedSurtr || false;
     }
     
     elements.titleScreen.classList.add('hidden');
@@ -511,6 +522,11 @@ function startGame() {
     
     // Calculate initial resources per second
     updateResourcesPerSecond();
+    
+    // Apply New Game+ bonuses if applicable
+    if (gameState.newGamePlus) {
+        applyNewGamePlusBonuses();
+    }
     
     // Welcome message animation for new games only
     if (!saveData) {
@@ -798,14 +814,25 @@ function updateUI() {
 // Next day
 function nextDay() {
     gameState.day++;
-    gameState.resources += 20; // Base resources per day
+    const baseResourceGain = 20;
+    gameState.resources += baseResourceGain;
     
-    // Update realm threat levels and statuses
+    // Add visual effect for resource gain
+    addResourceEffect(baseResourceGain);
+    
+    // Existing realm threat update with invasion visual effect
+    gameState.realms.forEach(realm => {
+        if (!realm.defended && realm.id !== 'asgard' && realm.id !== 'muspelheim') {
+            const realmElement = document.querySelector(`.realm[data-id="${realm.id}"]`);
+            if (realmElement) {
+                addInvasionEffect(realmElement);
+            }
+        }
+    });
+    
+    // Rest of existing nextDay logic...
     updateRealmThreats();
-    
-    // Check for game over
     checkGameState();
-    
     renderRealms();
     updateUI();
 }
@@ -816,6 +843,12 @@ function updateRealmThreats() {
         if (!realm.defended && realm.id !== 'asgard' && realm.id !== 'muspelheim') {
             // Calculate base threat increase
             let increase = Math.floor(Math.random() * 10) + 5;
+            
+            // Apply New Game+ threat reduction
+            if (gameState.newGamePlus && gameState.newGamePlusLevel > 0) {
+                const reduction = Math.min(0.5, gameState.newGamePlusLevel * 0.1);
+                increase = Math.floor(increase * (1 - reduction));
+            }
             
             // Apply defense bonus reduction
             if (realm.defenseBonusPercentage) {
@@ -1046,6 +1079,9 @@ function endBattle(playerRemaining, enemyRemaining, realm, isFinalBattle = false
         if (isFinalBattle) {
             addBattleLog(`Victory! Surtr has been defeated and the nine realms are saved!`);
             
+            // Mark Surtr as defeated
+            gameState.hasDefeatedSurtr = true;
+            
             // End game with victory
             const returnBtn = document.createElement('button');
             returnBtn.textContent = 'End Game';
@@ -1120,6 +1156,9 @@ function endBattle(playerRemaining, enemyRemaining, realm, isFinalBattle = false
                         
                         // Limit defense bonus to 100%
                         realm.defenseBonusPercentage = Math.min(100, realm.defenseBonusPercentage);
+                        
+                        // Add magical barrier effect
+                        addMagicalBarrierEffect(realm);
                         
                         // Update UI
                         updateUI();
@@ -1346,6 +1385,22 @@ function endGame(victory, message) {
     
     elements.gameOverTitle.textContent = victory ? "Victory!" : "Defeat!";
     elements.gameOverMessage.textContent = message;
+    
+    // Add New Game+ option if Surtr was defeated
+    if (victory && gameState.hasDefeatedSurtr) {
+        const newGamePlusBtn = document.createElement('button');
+        newGamePlusBtn.textContent = 'Start New Game+';
+        newGamePlusBtn.classList.add('action-btn');
+        newGamePlusBtn.id = 'new-game-plus-btn';
+        newGamePlusBtn.style.margin = '10px';
+        newGamePlusBtn.style.backgroundColor = '#9c27b0';
+        newGamePlusBtn.style.color = 'white';
+        
+        const restartSection = document.querySelector('#game-over-screen');
+        restartSection.insertBefore(newGamePlusBtn, elements.restartBtn);
+        
+        newGamePlusBtn.addEventListener('click', startNewGamePlus);
+    }
 }
 
 // Restart the game
@@ -1365,6 +1420,100 @@ function restartGame() {
     resetGameState();
 }
 
+// Start New Game+
+function startNewGamePlus() {
+    if (!confirm("Start New Game+? This will reset your progress but grant permanent bonuses based on your achievements.")) {
+        return;
+    }
+    
+    // Increase New Game+ level
+    gameState.newGamePlusLevel = (gameState.newGamePlusLevel || 0) + 1;
+    
+    // Save New Game+ progress
+    const ngPlusData = {
+        newGamePlusLevel: gameState.newGamePlusLevel,
+        hasDefeatedSurtr: true
+    };
+    localStorage.setItem(`nineRealms_ngplus_${gameState.currentSaveSlot}`, JSON.stringify(ngPlusData));
+    
+    // Reset to title screen
+    elements.gameOverScreen.classList.add('hidden');
+    elements.titleScreen.classList.remove('hidden');
+    
+    // Reset game state but keep New Game+ status
+    resetGameState();
+    gameState.newGamePlus = true;
+    gameState.newGamePlusLevel = ngPlusData.newGamePlusLevel;
+    gameState.hasDefeatedSurtr = true;
+    
+    // Update start button text
+    elements.startBtn.textContent = `Begin New Game+ ${gameState.newGamePlusLevel}`;
+    
+    // Reload save slots to show New Game+ status
+    loadSaveSlots();
+}
+
+// Apply New Game+ bonuses
+function applyNewGamePlusBonuses() {
+    const ngLevel = gameState.newGamePlusLevel;
+    
+    if (ngLevel > 0) {
+        // Bonus starting resources
+        const bonusResources = ngLevel * 50;
+        gameState.resources += bonusResources;
+        
+        // Bonus starting Einherjar
+        const bonusEinherjar = Math.floor(ngLevel * 2);
+        gameState.einherjar.warriors += bonusEinherjar;
+        gameState.einherjar.archers += bonusEinherjar;
+        gameState.einherjar.shieldMaidens += bonusEinherjar;
+        gameState.einherjar.total += bonusEinherjar * 3;
+        
+        // Improved resource generation for defended realms
+        gameState.realms.forEach(realm => {
+            if (realm.defended) {
+                realm.resourcesPerSecond *= (1 + (ngLevel * 0.2));
+            }
+        });
+        
+        // Show New Game+ welcome message
+        const ngPlusMessage = document.createElement('div');
+        ngPlusMessage.classList.add('newgameplus-message');
+        ngPlusMessage.innerHTML = `
+            <h2>New Game+ ${ngLevel} Activated!</h2>
+            <p><strong>Bonuses Received:</strong></p>
+            <ul>
+                <li>+${bonusResources} Starting Resources</li>
+                <li>+${bonusEinherjar * 3} Starting Einherjar</li>
+                <li>+${(ngLevel * 20)}% Resource Generation</li>
+                <li>Reduced Enemy Threat Growth</li>
+            </ul>
+            <p>Your legend grows stronger with each victory!</p>
+        `;
+        ngPlusMessage.style.position = 'fixed';
+        ngPlusMessage.style.top = '50%';
+        ngPlusMessage.style.left = '50%';
+        ngPlusMessage.style.transform = 'translate(-50%, -50%)';
+        ngPlusMessage.style.backgroundColor = 'rgba(156, 39, 176, 0.95)';
+        ngPlusMessage.style.padding = '20px';
+        ngPlusMessage.style.borderRadius = '10px';
+        ngPlusMessage.style.maxWidth = '600px';
+        ngPlusMessage.style.textAlign = 'center';
+        ngPlusMessage.style.zIndex = '1000';
+        ngPlusMessage.style.border = '2px solid #9c27b0';
+        ngPlusMessage.style.color = 'white';
+        
+        document.body.appendChild(ngPlusMessage);
+        
+        gsap.to(ngPlusMessage, {
+            opacity: 0,
+            delay: 6,
+            duration: 1,
+            onComplete: () => ngPlusMessage.remove()
+        });
+    }
+}
+
 // Reset game state to default values
 function resetGameState() {
     gameState.day = 1;
@@ -1381,6 +1530,12 @@ function resetGameState() {
     gameState.gameOver = false;
     gameState.surtrAttacked = false;
     gameState.victorious = false;
+    
+    // Don't reset New Game+ status unless explicitly starting fresh
+    if (!gameState.newGamePlus) {
+        gameState.newGamePlusLevel = 0;
+        gameState.hasDefeatedSurtr = false;
+    }
     
     // Reset realms
     gameState.realms.forEach(realm => {
@@ -1450,5 +1605,51 @@ function updateTrainingButtons() {
     }
     if (elements.trainShieldMaidenBtn) {
         elements.trainShieldMaidenBtn.disabled = gameState.resources < 20;
+    }
+}
+
+// Visual effect for realm defense
+function addRealmDefenseEffect(realmElement) {
+    realmElement.classList.add('realm-defend-effect');
+    setTimeout(() => {
+        realmElement.classList.remove('realm-defend-effect');
+    }, 2000);
+}
+
+// Visual effect for resource gain/loss
+function addResourceEffect(amount) {
+    const resourceCounter = document.getElementById('resource-count');
+    const effectSpan = document.createElement('span');
+    effectSpan.textContent = amount > 0 ? `+${amount}` : amount.toString();
+    effectSpan.classList.add(amount > 0 ? 'resource-gain-effect' : 'resource-loss-effect');
+    resourceCounter.appendChild(effectSpan);
+    
+    gsap.to(effectSpan, {
+        opacity: 0,
+        y: -20,
+        duration: 1,
+        onComplete: () => effectSpan.remove()
+    });
+}
+
+// Visual effect for enemy invasion
+function addInvasionEffect(realmElement) {
+    realmElement.classList.add('realm-attack-effect');
+    setTimeout(() => {
+        realmElement.classList.remove('realm-attack-effect');
+    }, 500);
+}
+
+// Add magical barrier effect when building defenses
+function addMagicalBarrierEffect(realm) {
+    const realmElement = document.querySelector(`.realm[data-id="${realm.id}"]`);
+    if (realmElement) {
+        const barrierEffect = document.createElement('div');
+        barrierEffect.classList.add('magical-barrier-effect');
+        realmElement.appendChild(barrierEffect);
+        
+        setTimeout(() => {
+            barrierEffect.remove();
+        }, 4000);
     }
 }

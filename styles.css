@@ -21,6 +21,13 @@ body {
     background-color: #1a1a2e;
     color: #e6e6e6;
     overflow: hidden;
+    /* Disable overscroll and zooming on mobile */
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 #game-container {
@@ -29,7 +36,10 @@ body {
     margin: 0 auto;
     position: relative;
     overflow: hidden;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23616161' fill-opacity='0.1'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23616161' fill-opacity='0.1'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    /* Prevent overscroll */
+    overscroll-behavior: contain;
+    touch-action: manipulation;
 }
 
 .hidden {
@@ -231,9 +241,9 @@ body {
 }
 
 @keyframes pulse {
-    0% { opacity: 0.7; }
-    50% { opacity: 1; }
-    100% { opacity: 0.7; }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
 .resource-rate {
@@ -534,9 +544,112 @@ body {
     100% { box-shadow: 0 0 30px #ff5722, 0 0 50px rgba(255, 87, 34, 0.5); }
 }
 
+.realm-attack-effect {
+    animation: shake 0.5s;
+}
+
+.realm-defend-effect {
+    animation: glow 2s infinite alternate;
+}
+
+.battle-damage-effect {
+    animation: shake 0.2s;
+    background-color: rgba(255, 0, 0, 0.3);
+}
+
+.unit-spawn-effect {
+    animation: pulse 0.5s;
+}
+
+.resource-gain-effect {
+    color: #4caf50;
+    animation: pulse 0.5s;
+}
+
+.resource-loss-effect {
+    color: #f44336;
+    animation: shake 0.2s;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(255, 215, 0, 0.5); }
+    50% { box-shadow: 0 0 20px rgba(255, 215, 0, 1); }
+}
+
+.fire-effect {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: radial-gradient(circle, #ff5722, transparent);
+    border-radius: 50%;
+    opacity: 0.7;
+    pointer-events: none;
+    animation: fireFlicker 1s infinite alternate;
+}
+
+@keyframes fireFlicker {
+    0% { transform: scale(0.8); opacity: 0.6; }
+    100% { transform: scale(1.2); opacity: 1; }
+}
+
+.magical-barrier-effect {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 100, 255, 0.1);
+    border: 2px solid rgba(0, 100, 255, 0.3);
+    border-radius: 10px;
+    pointer-events: none;
+    animation: barrierPulse 2s infinite alternate;
+}
+
+@keyframes barrierPulse {
+    0% { transform: scale(1); opacity: 0.3; }
+    100% { transform: scale(1.02); opacity: 0.5; }
+}
+
+.surtr-defeated {
+    color: var(--asgard-color);
+    font-weight: bold;
+    text-shadow: 0 0 5px var(--asgard-color);
+}
+
+.newgameplus-message ul {
+    text-align: left;
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.newgameplus-message li {
+    margin: 5px 0;
+}
+
+#new-game-plus-btn {
+    background: linear-gradient(45deg, #9c27b0, #673ab7);
+    transition: all 0.3s ease;
+}
+
+#new-game-plus-btn:hover {
+    background: linear-gradient(45deg, #8e24aa, #5e35b1);
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(156, 39, 176, 0.7);
+}
+
 @media screen and (max-width: 768px) {
     body {
         font-size: 14px;
+        /* Additional mobile-specific touch behavior */
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+        position: fixed;
+        width: 100%;
+        height: 100%;
     }
 
     #game-container {
